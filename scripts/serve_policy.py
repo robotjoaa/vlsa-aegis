@@ -71,7 +71,7 @@ DEFAULT_CHECKPOINT: dict[EnvMode, Checkpoint] = {
     ),
     EnvMode.LIBERO: Checkpoint(
         config="pi05_libero",
-        dir="./checkpoints/pi05_libero",
+        dir="/home/sisrel/data/checkpoints/pi05_libero/pi05_libero",
     ),
 }
 

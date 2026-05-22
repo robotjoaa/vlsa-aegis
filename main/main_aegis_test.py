@@ -27,8 +27,8 @@ LIBERO_DUMMY_ACTION = [0.0] * 6 + [-1.0]
 LIBERO_ENV_RESOLUTION = 1024  # resolution used to render training data
 OBSTACLE_POS = np.array([-0.15, 0.03, 1.17])
 OBSTACLE_RADIUS = 0.06
-ALPHA = 1.0                 # CBF 增益
-MAX_VEL = 1.0               # 最大末端速度
+ALPHA = 1.0                 # CBF gain
+MAX_VEL = 1.0               # maximum EE speed 
 
 
 @dataclasses.dataclass
@@ -92,11 +92,13 @@ def eval_libero(args: Args) -> None:
     client = _websocket_client_policy.WebsocketClientPolicy(args.host, args.port)
     from groundingdino.util.inference import load_model, load_image, predict, annotate
     import cv2
-    CONFIG_PATH = "GroundingDINO/GroundingDINO_SwinT_OGC.py"    #源码自带的配置文件
-    CHECKPOINT_PATH = "GroundingDINO/groundingdino_swint_ogc.pth"   #下载的权重文件
-    DEVICE = "cuda"   #可以选择cpu/cuda
-    BOX_TRESHOLD = 0.35     #源码给定的边界框判定阈值
-    TEXT_TRESHOLD = 0.25    #源码给定的文本端获取关键属性阈值
+    CONFIG_PATH = "GroundingDINO/config/GroundingDINO_SwinT_OGC.py"    #configuration file that comes with the source code
+    CHECKPOINT_PATH = "GroundingDINO/groundingdino_swint_ogc.pth"   #downloaded weight
+    # CONFIG_PATH = "GroundingDINO/config/GroundingDINO_SwinB_cfg.py"
+    # CHECKPOINT_PATH = "GroundingDINO/groundingdino_swinb_cogcoor.pth"
+    # DEVICE = "cuda"   #可以选择cpu/cuda
+    BOX_TRESHOLD = 0.35     #bbox determination threshold 
+    TEXT_TRESHOLD = 0.25    #key attributre threshold from the text
 
     model_groundingdino = load_model(CONFIG_PATH, CHECKPOINT_PATH)
     # Start evaluation
@@ -134,12 +136,12 @@ def eval_libero(args: Args) -> None:
         for episode_idx in episode_index:
             logging.info(f"\nTask: {task_description}")
 
-            # Reset environment
+            ### 1. Reset environment
             env.reset()
             action_plan = collections.deque()
 
             # print("Joint names (qpos):", env.sim.model.joint_names)
-            # a
+
             # Set initial states
             # initial_states[episode_idx][67] = initial_states[episode_idx][67] - 0.02
             # initial_states[episode_idx][53] = initial_states[episode_idx][53] - 0.02
@@ -153,7 +155,7 @@ def eval_libero(args: Args) -> None:
             data = env.sim.data
             eef_body_id = model.body_name2id("eef_marker")
 
-            #末端椭球的初始位置和姿态角
+            # Initial position and attitude angle of the terminal ellipsoid
             eef_pos = obs["robot0_eef_pos"]
             eef_quat = obs["robot0_eef_quat"]
             r = R.from_quat(eef_quat)
@@ -165,6 +167,9 @@ def eval_libero(args: Args) -> None:
             p1 = ball_pos
             env.sim.model.body_pos[eef_body_id] = ball_pos
             env.sim.model.body_quat[eef_body_id] = eef_quat[[3, 0, 1, 2]]
+
+            # Larger EE elipsoid for holding longer object
+            
             if "orange juice" in task_description or "milk" in task_description or "alphabet soup" in task_description:
                 Q1_diag = np.array([0.06, 0.12, 0.2])
             else:
@@ -188,7 +193,7 @@ def eval_libero(args: Args) -> None:
 
 
             
-            # 感知障碍物
+            ### 2. Detect obstacles
             agentview_img = np.ascontiguousarray(obs["agentview_image"][::-1, ::-1])
             agentview_depth = np.ascontiguousarray(obs["agentview_depth"][::-1, ::-1])
             # import matplotlib
@@ -199,17 +204,18 @@ def eval_libero(args: Args) -> None:
 
             img_out_dir = out_dir/f"{episode_idx}"
             img_out_dir.mkdir(parents=True, exist_ok=True)
-            # 获取最容易撞到的障碍物
-            obstacle_infromation = obstacle_detection(agentview_img, task_description, args.task_suite_name)
+            # Get the obstacle most likely to be hit
+            # obstacle_infromation = obstacle_detection(agentview_img, task_description, args.task_suite_name)
+            obstacle_information ="red milk carton"
             # obstacle_infromation = "yellow rectangular book"
-            agent_view_points = get_point_cloud(agentview_img, agentview_depth, env, "agentview", obstacle_infromation, model_groundingdino, img_out_dir)
+            agent_view_points = get_point_cloud(agentview_img, agentview_depth, env, "agentview", obstacle_information, model_groundingdino, img_out_dir)
             # import pandas as pd
             # df = pd.DataFrame(agent_view_points, columns=["X", "Y", "Z"])
             # df.to_csv("agent_view_points.csv", index=False)
             
             backview_img = np.ascontiguousarray(obs["backview_image"][::-1, ::-1])
             backview_depth = np.ascontiguousarray(obs["backview_depth"][::-1, ::-1])
-            back_view_points = get_point_cloud(backview_img, backview_depth, env, "backview", obstacle_infromation, model_groundingdino, img_out_dir)
+            back_view_points = get_point_cloud(backview_img, backview_depth, env, "backview", obstacle_information, model_groundingdino, img_out_dir)
             
             # df = pd.DataFrame(back_view_points, columns=["X", "Y", "Z"])
             # df.to_csv("back_view_points.csv", index=False)
@@ -226,7 +232,7 @@ def eval_libero(args: Args) -> None:
             # df = pd.DataFrame(full_points, columns=["X", "Y", "Z"])
             # df.to_csv("full_points.csv", index=False)
 
-            # 点云过滤
+            # Point cloud filtering 
             filter_points = filtering_points(full_points)
             # print("过滤后的点云数量：", filter_points.shape[0])
             flag_safety_control = True
@@ -307,7 +313,7 @@ def eval_libero(args: Args) -> None:
                         action_plan.extend(action_chunk[: args.replan_steps])
 
                     t2 = time.time()
-                    # print("t={}, 一次推理的时间={}".format(t, t2-t1))
+                    # print("t={}, inference time={}".format(t, t2-t1))
 
                     action = action_plan.popleft()
                     t3 = time.time()
@@ -328,27 +334,27 @@ def eval_libero(args: Args) -> None:
                         u_z_nom = 10 * mu_row
                         u = cp.Variable(6)  # [v_x, v_y, omega, u_zx, u_zy]
 
-                        # --- 加权代价函数 ---
+                        # ---  Weighted cost function ---
                         W = np.diag([1.0/25, 1.0/25, 1.0/25, 1.0, 1.0, 1.0])  
                         u_ref_vec = np.hstack([u_v_ref, u_z_nom])
                         objective = cp.Minimize(cp.quad_form(u - u_ref_vec, W))
-                        # --- 线性约束 ---
+                        # --- Linear constraints ---
                         constraints = [
                             a_u_v @ u[:3] + a_uz @ u[3:6] + 10 * h >= 0
                         ]
-                        # --- 求解 QP ---
+                        # --- Solve QP ---
                         prob = cp.Problem(objective, constraints)
                         prob.solve(solver=cp.OSQP)
-                        # --- 读取优化结果 ---
+                        # --- Read optimization results ---
                         if u.value is not None:
                             u_v = u.value[:3]
                             # u_omega = u.value[3:6]
                             u_z = u.value[3:]
                         else:
-                            u_v = v_ref2
+                            u_v = v_ref # why not action[:3]
                             # u_omega = omega_ref
                             u_z = u_z_nom
-                            print("无可行解")
+                            print("No feasible solution")
                             
                         # print("t={}".format(t))
                         # print("u:", u.value)
@@ -363,19 +369,19 @@ def eval_libero(args: Args) -> None:
 
                         action_input = np.zeros(7)
                         action_input[:3] = 0.2 * R1 @ u_v
-                        action_input[6] = action[6]  # 保持夹爪闭合
+                        action_input[6] = action[6]  # Keep gripper closed 
                         # print("action_input:", action_input)
                         t4 = time.time()
 
-                        obs, reward, done, info = env.step(action_input.tolist()) #关键的一步
+                        obs, reward, done, info = env.step(action_input.tolist()) # Crucial step
                     else:
                         t4 = time.time()
 
-                        obs, reward, done, info = env.step(action.tolist()) #关键的一步
+                        obs, reward, done, info = env.step(action.tolist()) # Crucial step
 
 
                     
-                    # print("t={}, 一次安全层的时间={}".format(t, t4-t3))
+                    # print("t={}, safety layer time={}".format(t, t4-t3))
                     if collide_flag == False:
                         then_obstacle_pos = obs[obstacle_name + "_pos"]
                         # print(np.sum(np.abs(then_obstacle_pos - initial_obstacle_pos)))

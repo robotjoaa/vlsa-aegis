@@ -6,3 +6,10 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+*.idea
+GroundingDINO/
+data/
+
+__pycache__/
+*.py[cod]

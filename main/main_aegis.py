@@ -336,7 +336,7 @@ def eval_libero(args: Args) -> None:
                             u_omega = action[3:6]
                             u_z = u_z_nom
                             print("No feasible solution")
-                            a
+                            
                         # print("t={}".format(t))
                         # print("u:", u.value)
 

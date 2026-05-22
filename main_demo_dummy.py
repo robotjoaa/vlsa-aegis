@@ -60,7 +60,7 @@ def eval_libero(args: Args) -> None:
 
     # Set to 10 for a quick view
     if args.task_suite_name == "safelibero_spatial":
-        max_steps = 10  
+        max_steps = 100  
     elif args.task_suite_name == "safelibero_object":
         max_steps = 10  
     elif args.task_suite_name == "safelibero_goal":

@@ -8,7 +8,7 @@
 /dataSources.local.xml
 
 *.idea
-GroundingDINO/
+*.pth
 data/
 
 __pycache__/

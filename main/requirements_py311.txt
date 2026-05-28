@@ -1,0 +1,97 @@
+# =============================================================================
+# main/.venv — Python 3.11 requirements
+# Environment: conda activate libero + source main/.venv/bin/activate
+# CUDA: 12.4 | Created with: uv venv main/.venv --python 3.11
+#
+# Install order matters — see setup_py311_venv.sh for the full procedure.
+# =============================================================================
+
+# =============================================================================
+# 1. OSCBF PRIORITY DEPENDENCIES (jax==0.4.30, CUDA 12)
+#    Install separately via:
+#      pip install jax[cuda12_pip]==0.4.30 jaxlib==0.4.30 \
+#          -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+# =============================================================================
+# jax==0.4.30                  (installed via CUDA wheels, see setup script)
+# jaxlib==0.4.30               (installed via CUDA wheels, see setup script)
+cbfpy==0.0.1
+qpax
+pybullet>=3.2.7
+trimesh
+networkx
+lxml
+# oscbf itself: pip install -e ./oscbf (editable, see setup script)
+
+# =============================================================================
+# 2. SIMULATION / ROBOT (safelibero + robosuite)
+# =============================================================================
+mujoco==3.2.3
+robosuite==1.4.1
+bddl==1.0.1
+h5py
+gymnasium                      # replaces gym 0.25 for Python 3.11 compat
+pyquaternion
+easydict
+pyopengl
+glfw
+
+# =============================================================================
+# 3. psfjax / CORE SCIENTIFIC
+# =============================================================================
+numpy>=1.24,<2.0               # jax 0.4.30 compatible range
+scipy>=1.10
+matplotlib
+opencv-python
+open3d==0.19.0
+pyvista                        # 3D voxel visualization for PSF field
+
+# =============================================================================
+# 4. QP SOLVERS (used by existing CBF scripts + psfjax)
+# =============================================================================
+osqp
+cvxpy
+
+# =============================================================================
+# 5. PYTORCH (2.x for Python 3.11 + CUDA 12.4)
+#    Install separately via:
+#      pip install torch torchvision torchaudio \
+#          --index-url https://download.pytorch.org/whl/cu124
+# =============================================================================
+# torch (installed via PyTorch index, see setup script)
+timm
+einops
+transformers>=4.21
+tokenizers
+
+# =============================================================================
+# 6. EVALUATION / VISION TOOLS
+# =============================================================================
+groundingdino-py==0.4.0
+supervision==0.6.0
+pycocotools
+
+# =============================================================================
+# 7. UTILITIES
+# =============================================================================
+tqdm
+tyro
+wandb
+imageio
+imageio-ffmpeg
+pillow
+pandas
+scikit-learn
+absl-py
+huggingface-hub
+safetensors
+hydra-core
+omegaconf
+rich
+retrying
+websockets
+requests
+
+# =============================================================================
+# 8. OPENPI CLIENT (editable, see setup script)
+#    pip install -e ../openpi/packages/openpi-client
+# =============================================================================
